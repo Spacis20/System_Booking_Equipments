@@ -34,9 +34,6 @@ public class EquipmentEntity {
     @Column(name = "quantityEquipment", nullable = false)
     private Integer quantity;
 
-//    @Column(name = "availableQuantityEquipment", nullable = false)
-//    private Integer availableQuantity;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "equipmentCategoryId")
     private EquipmentCategory equipmentCategory;

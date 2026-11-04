@@ -1,20 +1,28 @@
 package equipment_service.example.demo.db.processors;
 
+import dev.common_libs.http.payment.CreatePaymentRequiredDto;
+import dev.common_libs.http.payment.PaymentStatus;
+import dev.common_libs.http.payment.ResponsePaymentDto;
+import dev.common_libs.kafka.ReservationPaidEvent;
+import equipment_service.example.demo.api.OrderPaymentRequest;
 import equipment_service.example.demo.db.equipment.*;
 import equipment_service.example.demo.dto.EquipmentMapper;
 import equipment_service.example.demo.dto.reservation.CreateEquipmentReservationDto;
 import equipment_service.example.demo.dto.reservation.ResponseReservationDto;
+import equipment_service.example.demo.external.PaymentHttpClient;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -25,6 +33,11 @@ public class ReservationProcessor {
     private final EquipmentMapper mapper;
     private final ReservationRepository repositoryReservation;
     private final EquipmentRepository equipmentRepository;
+    private final PaymentHttpClient paymentHttpClient;
+    private final KafkaTemplate<Long, ReservationPaidEvent> kafkaTemplate;
+
+    @Value("${order-paid-topic}")
+    private String orderPaidTopic;
 
     public ResponseReservationDto create(CreateEquipmentReservationDto reservationDto){
         log.info("Equipment Reservation CREATE is launched");
@@ -38,11 +51,13 @@ public class ReservationProcessor {
         }
 
         var listReservations = repositoryReservation.findByEquipmentIdAndStatusAndStartDateLessThanAndEndDateGreaterThan(
-                reservationDto.equipmentId(), ReservationStatus.RESERVED,
+                reservationDto.equipmentId(), ReservationStatus.WAIT_PAYMENT,
                 reservationDto.endDate(), reservationDto.startDate()
         );
         if (checkReservations(entity, equipment,listReservations)){
                 entity.setStatus(ReservationStatus.WAIT_PAYMENT);
+                var longDays = ChronoUnit.DAYS.between(entity.getStartDate(),entity.getEndDate());
+                entity.setQuantityDaysRental(longDays);
                 var save = repositoryReservation.save(entity);
                 return mapper.toReservationDto(save);
             }
@@ -67,6 +82,7 @@ public class ReservationProcessor {
             mapReservation.merge(start, res.getQuantity(), Integer::sum);
             mapReservation.merge(end, -res.getQuantity(), Integer::sum);
         }
+
         int reserved = 0;
         for (Integer event : mapReservation.values()){
             reserved += event;
@@ -91,15 +107,6 @@ public class ReservationProcessor {
         return mapper.toReservationDto(reservation);
     }
 
-    public Set<ResponseReservationDto> getAllReservations() {
-        Set<ResponseReservationDto> setReservations = new HashSet<>();
-        for(EquipmentReservation res : repositoryReservation.findAll()){
-            var res_ = mapper.toReservationDto(res);
-            setReservations.add(res_);
-        }
-        return setReservations;
-    }
-
     public ResponseReservationDto cancel(Long id) {
         var entity = repositoryReservation.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Reservation was not founded"));
@@ -108,5 +115,67 @@ public class ReservationProcessor {
         }
         entity.setStatus(ReservationStatus.CANCELLED);
         return mapper.toReservationDto(entity);
+    }
+
+    public EquipmentReservation makePayment(Long id, OrderPaymentRequest request) {
+        var entity = repositoryReservation.findById(id).orElseThrow(
+                () -> new EntityNotFoundException("Reservation not found for payment"));
+        var equipment = equipmentRepository.findById(entity.getEquipmentId()).orElseThrow(
+                () -> new EntityNotFoundException("Equipment not found by id: "
+                        + entity.getEquipmentId())
+        );
+
+        if(!entity.getStatus().equals(ReservationStatus.WAIT_PAYMENT)){
+            throw new IllegalArgumentException("Reservation Status must be RESERVED");
+        }
+
+        var response = paymentHttpClient.createPayment(
+                CreatePaymentRequiredDto.builder()
+                        .rentalOrderId(entity.getRentalOrderId())
+                        .amount(BigDecimal.valueOf(
+                                entity.getQuantityDaysRental()).multiply(equipment.getPricePerDay()))
+                        .method(request.method())
+                        .build());
+
+        var status = response.status().equals(PaymentStatus.PAID_SUCCEED)
+                ? ReservationStatus.PAID
+                : ReservationStatus.FAILED;
+
+        entity.setStatus(status);
+        var save = repositoryReservation.save(entity);
+
+        if (status.equals(ReservationStatus.PAID)){
+            sendDelivery(entity, response);
+        }
+        return save;
+
+    }
+
+    private void sendDelivery(EquipmentReservation entity,
+                              ResponsePaymentDto response) {
+        kafkaTemplate.send(
+            orderPaidTopic,
+            entity.getId(),
+            ReservationPaidEvent.builder()
+                    .rentalOrderId(entity.getRentalOrderId())
+                    .paymentId(response.id())
+                    .amount(response.amount())
+                    .paymentMethod(response.method())
+                    .build()
+        ).thenAccept( result ->
+                log.info("Order paid event by id: {}", entity.getId()));
+    }
+
+    public Set<ResponseReservationDto> getOrder() {
+        return repositoryReservation
+                .findAll()
+                .stream()
+                .map(mapper::toReservationDto)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+
+    public void deleteAll() {
+        repositoryReservation.deleteAll();
     }
 }

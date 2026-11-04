@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -39,4 +38,7 @@ public class EquipmentReservation {
 
     @Column(name = "rentalOrderId")
     private Long rentalOrderId;
+
+    @Column(name = "quantityDaysRental")
+    private Long quantityDaysRental;
 }

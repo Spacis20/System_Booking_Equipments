@@ -11,7 +11,6 @@ public record UpdateEquipmentRequestDto(
         String description,
         BigDecimal pricePerDay,
         Integer quantity,
-        Integer availableQuantity,
         EquipmentCategory equipmentCategory,
         EquipmentStatus status
 ) {

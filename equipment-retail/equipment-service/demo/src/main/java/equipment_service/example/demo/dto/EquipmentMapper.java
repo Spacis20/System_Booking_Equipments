@@ -22,6 +22,7 @@ public interface EquipmentMapper {
     EquipmentResponseDto toEquipmentDto(EquipmentEntity equipment);
 
     EquipmentReservation toEntityReservation(CreateEquipmentReservationDto reservationDto);
+    @Mapping(target = "quantityDaysRental")
     ResponseReservationDto toReservationDto(EquipmentReservation reservation);
 
     EquipmentCategory toCategory(CreateCategoryRequestDto requestDto);

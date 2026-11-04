@@ -1,7 +1,6 @@
 package equipment_service.example.demo.api;
 
 
-import equipment_service.example.demo.db.equipment.EquipmentEntity;
 import equipment_service.example.demo.db.processors.EquipmentProcessor;
 import equipment_service.example.demo.dto.EquipmentMapper;
 import equipment_service.example.demo.dto.equipment.CreateEquipmentRequestDto;
@@ -42,4 +41,12 @@ public class EquipmentController {
         log.info("Get all equipments");
         return processor.getAll();
     }
+
+    @PostMapping("/deleteAll")
+    public void deleteAll(){
+        log.info("Delete All dates");
+        processor.deleteAll();
+    }
+
+
 }

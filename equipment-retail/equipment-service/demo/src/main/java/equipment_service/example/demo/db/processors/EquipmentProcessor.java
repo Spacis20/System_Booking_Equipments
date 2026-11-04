@@ -26,10 +26,7 @@ public class EquipmentProcessor {
 
     public EquipmentResponseDto create(CreateEquipmentRequestDto requestDto){
         var entity = mapper.toEntity(requestDto);
-//        if (repository.find(entity.getId()).isPresent()) {
-//            log.info("Equipment already exist by id={}", entity.getId());
-//            return mapper.toEquipmentDto(entity);
-//        }
+
         entity.setStatus(EquipmentStatus.ACTIVE);
         var category = categoryRepository.findById(requestDto.categoryId())
                         .orElseThrow(() -> new EntityNotFoundException("Category not found"));
@@ -68,5 +65,9 @@ public class EquipmentProcessor {
             set.add(obj);
         }
         return set;
+    }
+
+    public void deleteAll() {
+        repository.deleteAll();
     }
 }

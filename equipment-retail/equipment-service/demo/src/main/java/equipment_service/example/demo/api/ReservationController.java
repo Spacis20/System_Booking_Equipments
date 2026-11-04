@@ -45,11 +45,6 @@ public class ReservationController {
         return processor.getReservation(id);
     }
 
-    @GetMapping
-    public Set<ResponseReservationDto> getAllReservation(){
-        log.info("Get all reservations");
-        return processor.getAllReservations();
-    }
 
     @PostMapping("/cancel/{id}")
     public ResponseReservationDto cancel(
@@ -57,6 +52,28 @@ public class ReservationController {
     ){
         log.info("Reservation is cancel by id: {}", id);
         return processor.cancel(id);
+    }
+
+    @PostMapping("/pay/{id}")
+    public ResponseReservationDto payOrder(
+            @PathVariable Long id,
+            @RequestBody OrderPaymentRequest request
+    ){
+        log.info("Paying order by id: {}, request: {}", id, request);
+        var payment = processor.makePayment(id, request);
+        return mapper.toReservationDto(payment);
+    }
+
+    @GetMapping
+    public Set<ResponseReservationDto> getOrder(){
+        log.info("Get reservations");
+        return processor.getOrder();
+    }
+
+    @PostMapping("/delete")
+    public void deleteAll(){
+        log.info("Delete all reservations");
+        processor.deleteAll();
     }
 
 }

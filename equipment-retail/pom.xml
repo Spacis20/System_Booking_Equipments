@@ -16,6 +16,7 @@
         <module>equipment-service/demo</module>
         <module>payment-service/demo</module>
         <module>delivery-service/demo</module>
+        <module>combine-libs</module>
     </modules>
 
 </project>
