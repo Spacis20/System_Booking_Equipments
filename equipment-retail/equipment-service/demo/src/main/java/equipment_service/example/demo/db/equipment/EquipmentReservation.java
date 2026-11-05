@@ -41,4 +41,10 @@ public class EquipmentReservation {
 
     @Column(name = "quantityDaysRental")
     private Long quantityDaysRental;
+
+    @Column(name = "nameCourier")
+    private String nameCourier;
+
+    @Column(name = "etaMinutes")
+    private Integer etaMinutes;
 }

@@ -3,6 +3,7 @@ package equipment_service.example.demo.db.processors;
 import dev.common_libs.http.payment.CreatePaymentRequiredDto;
 import dev.common_libs.http.payment.PaymentStatus;
 import dev.common_libs.http.payment.ResponsePaymentDto;
+import dev.common_libs.kafka.DeliveryAssignedEvent;
 import dev.common_libs.kafka.ReservationPaidEvent;
 import equipment_service.example.demo.api.OrderPaymentRequest;
 import equipment_service.example.demo.db.equipment.*;
@@ -12,7 +13,7 @@ import equipment_service.example.demo.dto.reservation.ResponseReservationDto;
 import equipment_service.example.demo.external.PaymentHttpClient;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -21,12 +22,15 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Transactional
 public class ReservationProcessor {
 
@@ -128,7 +132,7 @@ public class ReservationProcessor {
         if(!entity.getStatus().equals(ReservationStatus.WAIT_PAYMENT)){
             throw new IllegalArgumentException("Reservation Status must be RESERVED");
         }
-
+        log.info("Requaring to payment service with method: {}", request.method());
         var response = paymentHttpClient.createPayment(
                 CreatePaymentRequiredDto.builder()
                         .rentalOrderId(entity.getRentalOrderId())
@@ -157,7 +161,7 @@ public class ReservationProcessor {
             orderPaidTopic,
             entity.getId(),
             ReservationPaidEvent.builder()
-                    .rentalOrderId(entity.getRentalOrderId())
+                    .rentalOrderId(entity.getId())
                     .paymentId(response.id())
                     .amount(response.amount())
                     .paymentMethod(response.method())
@@ -177,5 +181,23 @@ public class ReservationProcessor {
 
     public void deleteAll() {
         repositoryReservation.deleteAll();
+    }
+
+    public void processDeliveryAssigned(DeliveryAssignedEvent event) {
+        var order = repositoryReservation.findById(event.orderId()).orElseThrow(
+                () -> new EntityNotFoundException("Reservation don't found by id:"+ event.orderId())
+        );
+        if (!order.getStatus().equals(ReservationStatus.PAID)){
+            if (order.getStatus().equals(ReservationStatus.DELIVERED)){
+                log.info("Order delivery already processed: id ={}", order.getId());
+            }
+            log.error("Trying to assigned delivery but Order have incorrect state id={}", order.getId());
+            return;
+        }
+        order.setStatus(ReservationStatus.DELIVERED);
+        order.setNameCourier(event.courierName());
+        order.setEtaMinutes(event.etaMinutes());
+        repositoryReservation.save(order);
+        log.info("Equipment delivered to client by id: {}", order.getId());
     }
 }
