@@ -17,7 +17,7 @@ public class PaymentProcessor {
     private final PaymentRepository repository;
 
     public PaymentEntity makePayment(CreatePaymentRequiredDto requiredDto) {
-        var request = repository.findByRentalOrderId(requiredDto.rentalOrderId());
+        var request = repository.findById(requiredDto.reservationId());
 
         if (request.isPresent()){
             log.info("Payment already exist: {}", request.get());

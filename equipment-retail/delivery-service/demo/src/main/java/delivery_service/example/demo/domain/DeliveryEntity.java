@@ -19,7 +19,7 @@ public class DeliveryEntity {
     private Long id;
 
     @Column(name = "orderId")
-    private Long orderId;
+    private Long reservationId;
 
     @Column(name = "nameCourier")
     private String nameCourier;

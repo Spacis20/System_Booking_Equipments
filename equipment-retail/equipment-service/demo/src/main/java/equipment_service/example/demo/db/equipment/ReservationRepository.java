@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface ReservationRepository extends JpaRepository<EquipmentReservation, Long> {
 
-    List<EquipmentReservation> findByEquipmentIdAndStatusAndStartDateLessThanAndEndDateGreaterThan(
+    List<EquipmentReservation> findByEquipmentIdAndStatusNotInAndStartDateLessThanAndEndDateGreaterThan(
             Long equipmentId,
-            ReservationStatus status,
+            List<ReservationStatus> statuses,
             LocalDate requestedEnd,
             LocalDate requestedStart
     );

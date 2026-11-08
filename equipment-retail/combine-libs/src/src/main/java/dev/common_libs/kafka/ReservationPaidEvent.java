@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 @Builder
 public record ReservationPaidEvent(
-        Long rentalOrderId,
+        Long reservationId,
         Long paymentId,
         BigDecimal amount,
         PaymentMethod paymentMethod

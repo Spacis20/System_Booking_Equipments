@@ -19,13 +19,13 @@ public class DeliveryProcessor {
     private String deliveryTopic;
 
     public void processOrderPaidEvent(ReservationPaidEvent event) {
-        var orderId =event.rentalOrderId();
-        var found =deliveryRepository.findById(orderId);
+        var reservationId =event.reservationId();
+        var found = deliveryRepository.findById(reservationId);
         if (found.isPresent()){
             log.info("Found order delivery already assigned: delivery: {}", found.get());
             return;
         }
-        var assigned = assignedDelivery(orderId);
+        var assigned = assignedDelivery(reservationId);
 
         sendDeliveryAssignedEvent(assigned);
     }
@@ -33,19 +33,19 @@ public class DeliveryProcessor {
     public void sendDeliveryAssignedEvent(DeliveryEntity assigned){
         kafkaTemplate.send(
                 deliveryTopic,
-                assigned.getOrderId(),
+                assigned.getReservationId(),
                 DeliveryAssignedEvent.builder()
                         .courierName(assigned.getNameCourier())
-                        .orderId(assigned.getOrderId())
+                        .reservationId(assigned.getReservationId())
                         .etaMinutes(assigned.getEtaMinutes())
                         .build()
         ).thenAccept(result ->
                 log.info("Delivery Assigned Event send: delivery id: {}", assigned.getId()));
     }
 
-    public DeliveryEntity assignedDelivery(Long orderId){
+    public DeliveryEntity assignedDelivery(Long reservationId){
         var entity = new DeliveryEntity();
-        entity.setOrderId(orderId);
+        entity.setReservationId(reservationId);
         entity.setNameCourier("Vladimir");
         entity.setEtaMinutes(13);
         deliveryRepository.save(entity);

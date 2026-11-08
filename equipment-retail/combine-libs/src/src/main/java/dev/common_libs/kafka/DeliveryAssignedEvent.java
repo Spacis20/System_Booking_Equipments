@@ -4,7 +4,7 @@ import lombok.Builder;
 
 @Builder
 public record DeliveryAssignedEvent(
-        Long orderId,
+        Long reservationId,
         String courierName,
         Integer etaMinutes
 ) {

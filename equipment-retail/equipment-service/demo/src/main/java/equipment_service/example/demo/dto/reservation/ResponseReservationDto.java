@@ -8,7 +8,6 @@ import java.time.LocalDate;
 @Builder
 public record ResponseReservationDto(
         Long id,
-        Long rentalOrderId,
         Long equipmentId,
         Integer quantity,
         LocalDate startDate,

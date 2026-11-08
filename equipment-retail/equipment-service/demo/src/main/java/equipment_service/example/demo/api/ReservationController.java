@@ -25,7 +25,7 @@ public class ReservationController {
 
     @PostMapping
     public ResponseReservationDto create(
-            @RequestBody CreateEquipmentReservationDto reservationDto
+            @Valid @RequestBody CreateEquipmentReservationDto reservationDto
             ){
         return processor.create(reservationDto);
     }

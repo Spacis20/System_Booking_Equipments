@@ -36,9 +36,6 @@ public class EquipmentReservation {
     @Column(name = "status")
     private ReservationStatus status;
 
-    @Column(name = "rentalOrderId")
-    private Long rentalOrderId;
-
     @Column(name = "quantityDaysRental")
     private Long quantityDaysRental;
 

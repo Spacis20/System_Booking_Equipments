@@ -54,10 +54,8 @@ public class ReservationProcessor {
             throw new IllegalArgumentException("Available equipment nor found");
         }
 
-        var listReservations = repositoryReservation.findByEquipmentIdAndStatusAndStartDateLessThanAndEndDateGreaterThan(
-                reservationDto.equipmentId(), ReservationStatus.WAIT_PAYMENT,
-                reservationDto.endDate(), reservationDto.startDate()
-        );
+        var listReservations = findAllReservations(reservationDto);
+
         if (checkReservations(entity, equipment,listReservations)){
                 entity.setStatus(ReservationStatus.WAIT_PAYMENT);
                 var longDays = ChronoUnit.DAYS.between(entity.getStartDate(),entity.getEndDate());
@@ -66,6 +64,16 @@ public class ReservationProcessor {
                 return mapper.toReservationDto(save);
             }
         throw new IllegalArgumentException("Equipment not available that dates");
+    }
+
+    private List<EquipmentReservation> findAllReservations(
+            CreateEquipmentReservationDto reservationDto
+    ){
+        var statuses = List.of(ReservationStatus.CANCELLED, ReservationStatus.FAILED);
+        return repositoryReservation.findByEquipmentIdAndStatusNotInAndStartDateLessThanAndEndDateGreaterThan(
+                reservationDto.equipmentId(), statuses,
+                reservationDto.endDate(), reservationDto.startDate()
+        );
     }
 
     private boolean checkReservations(
@@ -135,7 +143,7 @@ public class ReservationProcessor {
         log.info("Requaring to payment service with method: {}", request.method());
         var response = paymentHttpClient.createPayment(
                 CreatePaymentRequiredDto.builder()
-                        .rentalOrderId(entity.getRentalOrderId())
+                        .reservationId(entity.getId())
                         .amount(BigDecimal.valueOf(
                                 entity.getQuantityDaysRental()).multiply(equipment.getPricePerDay()))
                         .method(request.method())
@@ -161,7 +169,7 @@ public class ReservationProcessor {
             orderPaidTopic,
             entity.getId(),
             ReservationPaidEvent.builder()
-                    .rentalOrderId(entity.getId())
+                    .reservationId(entity.getId())
                     .paymentId(response.id())
                     .amount(response.amount())
                     .paymentMethod(response.method())
@@ -184,12 +192,13 @@ public class ReservationProcessor {
     }
 
     public void processDeliveryAssigned(DeliveryAssignedEvent event) {
-        var order = repositoryReservation.findById(event.orderId()).orElseThrow(
-                () -> new EntityNotFoundException("Reservation don't found by id:"+ event.orderId())
+        var order = repositoryReservation.findById(event.reservationId()).orElseThrow(
+                () -> new EntityNotFoundException("Reservation don't found by id:"+ event.reservationId())
         );
         if (!order.getStatus().equals(ReservationStatus.PAID)){
             if (order.getStatus().equals(ReservationStatus.DELIVERED)){
                 log.info("Order delivery already processed: id ={}", order.getId());
+                return;
             }
             log.error("Trying to assigned delivery but Order have incorrect state id={}", order.getId());
             return;

@@ -18,8 +18,8 @@ public class PaymentEntity {
     @Column(name = "paymentId")
     private Long id;
 
-    @Column(name = "rentalOrderId", nullable = false)
-    private Long rentalOrderId;
+    @Column(name = "reservationId", nullable = false, unique = true)
+    private Long reservationId;
 
     @Column(name = "amount")
     private BigDecimal amount;

@@ -42,7 +42,4 @@ public class EquipmentEntity {
     @Enumerated(EnumType.STRING)
     private EquipmentStatus status;
 
-    @Column(name = "rentalOrderId")
-    private Long rentalOrderId;
-
 }
