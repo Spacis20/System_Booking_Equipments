@@ -6,6 +6,7 @@ import equipment_service.example.demo.db.processors.ReservationProcessor;
 import equipment_service.example.demo.dto.EquipmentMapper;
 import equipment_service.example.demo.dto.reservation.CreateEquipmentReservationDto;
 import equipment_service.example.demo.dto.reservation.ResponseReservationDto;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

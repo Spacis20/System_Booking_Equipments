@@ -6,7 +6,9 @@ import equipment_service.example.demo.dto.equipment.CreateEquipmentRequestDto;
 import equipment_service.example.demo.dto.equipment.EquipmentResponseDto;
 import equipment_service.example.demo.dto.equipment.UpdateEquipmentRequestDto;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +19,11 @@ import java.util.Set;
 @Service
 @AllArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        isolation = Isolation.READ_COMMITTED,
+        readOnly = false
+)
 public class EquipmentProcessor {
 
     private final EquipmentMapper mapper;

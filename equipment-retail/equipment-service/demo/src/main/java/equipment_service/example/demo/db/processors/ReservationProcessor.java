@@ -12,7 +12,9 @@ import equipment_service.example.demo.dto.reservation.CreateEquipmentReservation
 import equipment_service.example.demo.dto.reservation.ResponseReservationDto;
 import equipment_service.example.demo.external.PaymentHttpClient;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
+
 public class ReservationProcessor {
 
     private final EquipmentMapper mapper;
@@ -43,6 +45,11 @@ public class ReservationProcessor {
     @Value("${order-paid-topic}")
     private String orderPaidTopic;
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED,
+            readOnly = false
+    )
     public ResponseReservationDto create(CreateEquipmentReservationDto reservationDto){
         log.info("Equipment Reservation CREATE is launched");
         var entity = mapper.toEntityReservation(reservationDto);
@@ -105,7 +112,11 @@ public class ReservationProcessor {
         }
         return true;
     }
-
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED,
+            readOnly = false
+    )
     public void delete(
             Long id
     ){
@@ -113,22 +124,35 @@ public class ReservationProcessor {
         repositoryReservation.deleteById(id);
     }
 
+    @Transactional(
+            readOnly = true
+    )
     public ResponseReservationDto getReservation(Long id) {
         var reservation = repositoryReservation.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Equipment reservation not founded"));
         return mapper.toReservationDto(reservation);
     }
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED,
+            readOnly = false
+    )
     public ResponseReservationDto cancel(Long id) {
         var entity = repositoryReservation.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Reservation was not founded"));
         if (entity.getStartDate().isBefore(LocalDate.now())){
             throw new IllegalArgumentException("Reservation already running");
         }
-        entity.setStatus(ReservationStatus.CANCELLED);
+        changeStatus(ReservationStatus.CANCELLED, entity);
         return mapper.toReservationDto(entity);
     }
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED,
+            readOnly = false
+    )
     public EquipmentReservation makePayment(Long id, OrderPaymentRequest request) {
         var entity = repositoryReservation.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("Reservation not found for payment"));
@@ -137,9 +161,6 @@ public class ReservationProcessor {
                         + entity.getEquipmentId())
         );
 
-        if(!entity.getStatus().equals(ReservationStatus.WAIT_PAYMENT)){
-            throw new IllegalArgumentException("Reservation Status must be RESERVED");
-        }
         log.info("Requaring to payment service with method: {}", request.method());
         var response = paymentHttpClient.createPayment(
                 CreatePaymentRequiredDto.builder()
@@ -149,13 +170,12 @@ public class ReservationProcessor {
                         .method(request.method())
                         .build());
 
+
         var status = response.status().equals(PaymentStatus.PAID_SUCCEED)
-                ? ReservationStatus.PAID
-                : ReservationStatus.FAILED;
+                ? changeStatus(ReservationStatus.PAID, entity)
+                : changeStatus(ReservationStatus.FAILED, entity);
 
-        entity.setStatus(status);
         var save = repositoryReservation.save(entity);
-
         if (status.equals(ReservationStatus.PAID)){
             sendDelivery(entity, response);
         }
@@ -178,6 +198,9 @@ public class ReservationProcessor {
                 log.info("Order paid event by id: {}", entity.getId()));
     }
 
+    @Transactional(
+           readOnly = true
+    )
     public Set<ResponseReservationDto> getOrder() {
         return repositoryReservation
                 .findAll()
@@ -186,27 +209,47 @@ public class ReservationProcessor {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED,
+            readOnly = false
+    )
     public void deleteAll() {
         repositoryReservation.deleteAll();
     }
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED,
+            readOnly = false
+    )
     public void processDeliveryAssigned(DeliveryAssignedEvent event) {
         var order = repositoryReservation.findById(event.reservationId()).orElseThrow(
                 () -> new EntityNotFoundException("Reservation don't found by id:"+ event.reservationId())
         );
-        if (!order.getStatus().equals(ReservationStatus.PAID)){
-            if (order.getStatus().equals(ReservationStatus.DELIVERED)){
-                log.info("Order delivery already processed: id ={}", order.getId());
-                return;
-            }
-            log.error("Trying to assigned delivery but Order have incorrect state id={}", order.getId());
+
+        if (order.getStatus().equals(ReservationStatus.DELIVERED)){
+            log.info("Order delivery already processed: id ={}", order.getId());
             return;
         }
-        order.setStatus(ReservationStatus.DELIVERED);
+
+        changeStatus(ReservationStatus.DELIVERED, order);
+
         order.setNameCourier(event.courierName());
         order.setEtaMinutes(event.etaMinutes());
         repositoryReservation.save(order);
         log.info("Equipment delivered to client by id: {}", order.getId());
+    }
+
+
+    private ReservationStatus changeStatus(ReservationStatus newStatus,
+                             EquipmentReservation reservation){
+        var resStatus = reservation.getStatus();
+        if (!resStatus.toTransactionTo(newStatus)){
+            throw new IllegalArgumentException("Impossible change status "
+                    + resStatus + " to" + newStatus);
+        }
+        reservation.setStatus(newStatus);
+        return newStatus;
     }
 }

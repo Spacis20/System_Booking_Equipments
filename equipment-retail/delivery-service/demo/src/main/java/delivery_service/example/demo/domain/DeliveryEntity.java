@@ -18,7 +18,7 @@ public class DeliveryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "orderId")
+    @Column(name = "orderId", unique = true, nullable = false)
     private Long reservationId;
 
     @Column(name = "nameCourier")

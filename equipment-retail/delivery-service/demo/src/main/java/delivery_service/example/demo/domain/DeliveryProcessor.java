@@ -6,10 +6,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(
+        propagation = Propagation.REQUIRED,
+        readOnly = false,
+        isolation = Isolation.READ_COMMITTED
+)
 public class DeliveryProcessor {
 
     private final DeliveryRepository deliveryRepository;
@@ -20,7 +28,7 @@ public class DeliveryProcessor {
 
     public void processOrderPaidEvent(ReservationPaidEvent event) {
         var reservationId =event.reservationId();
-        var found = deliveryRepository.findById(reservationId);
+        var found = deliveryRepository.findByReservationId(reservationId);
         if (found.isPresent()){
             log.info("Found order delivery already assigned: delivery: {}", found.get());
             return;

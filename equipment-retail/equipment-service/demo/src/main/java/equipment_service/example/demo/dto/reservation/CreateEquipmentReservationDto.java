@@ -18,7 +18,7 @@ public record CreateEquipmentReservationDto(
         @FutureOrPresent
         LocalDate endDate,
         @Positive
-        @NotBlank
+        @NotNull
         Integer quantity
 ) {
 }

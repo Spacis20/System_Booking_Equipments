@@ -19,8 +19,6 @@ public class ReservationDatesValidator implements ConstraintValidator<
             return true;
         }
 
-        if (dto.endDate().isAfter(dto.startDate())){
-            return true;
-        }
+        return  dto.endDate().isAfter(dto.startDate());
     }
 }

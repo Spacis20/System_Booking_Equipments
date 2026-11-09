@@ -28,10 +28,11 @@ public class GlobalExeptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDto);
     }
 
-    @ExceptionHandler(exception =
-        IllegalArgumentException.class,
-        IllegalStateException.class,
-        MethodArgumentNotValidException.class)
+    @ExceptionHandler(exception = {
+            IllegalArgumentException.class,
+            IllegalStateException.class,
+            MethodArgumentNotValidException.class
+    })
     public ResponseEntity<ErrorExeptionDto> hanldeIllegalException(Exception e){
         log.info("Handle BADREQUEST exeption: {}", e);
 

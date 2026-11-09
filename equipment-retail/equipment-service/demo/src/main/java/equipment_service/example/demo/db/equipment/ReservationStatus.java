@@ -5,5 +5,17 @@ public enum ReservationStatus {
     WAIT_PAYMENT,
     PAID,
     DELIVERED,
-    FAILED
+    FAILED;
+
+    public boolean toTransactionTo(ReservationStatus newStatus){
+        return switch (this){
+            case WAIT_PAYMENT ->
+                newStatus == PAID ||
+                newStatus == FAILED ||
+                newStatus == CANCELLED;
+            case PAID ->
+                newStatus == DELIVERED;
+            case DELIVERED, CANCELLED, FAILED -> false;
+        };
+    }
 }
