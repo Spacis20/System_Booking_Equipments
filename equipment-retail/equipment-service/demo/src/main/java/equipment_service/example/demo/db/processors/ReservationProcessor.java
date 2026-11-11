@@ -12,6 +12,9 @@ import equipment_service.example.demo.dto.reservation.CreateEquipmentReservation
 import equipment_service.example.demo.dto.reservation.ResponseReservationDto;
 import equipment_service.example.demo.external.PaymentHttpClient;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +76,10 @@ public class ReservationProcessor {
         throw new IllegalArgumentException("Equipment not available that dates");
     }
 
+    @Cacheable(
+            value = "reservation-list",
+            key = "'all'"
+    )
     private List<EquipmentReservation> findAllReservations(
             CreateEquipmentReservationDto reservationDto
     ){
@@ -112,10 +119,10 @@ public class ReservationProcessor {
         }
         return true;
     }
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            isolation = Isolation.READ_COMMITTED,
-            readOnly = false
+    @Transactional
+    @CacheEvict(
+            value = "reservation",
+            key = "#id"
     )
     public void delete(
             Long id
@@ -124,9 +131,8 @@ public class ReservationProcessor {
         repositoryReservation.deleteById(id);
     }
 
-    @Transactional(
-            readOnly = true
-    )
+    @Transactional(readOnly = true)
+    @Cacheable(value = "reservation", key = "#id")
     public ResponseReservationDto getReservation(Long id) {
         var reservation = repositoryReservation.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Equipment reservation not founded"));
@@ -138,6 +144,7 @@ public class ReservationProcessor {
             isolation = Isolation.READ_COMMITTED,
             readOnly = false
     )
+    @CacheEvict(value = "reservation", key = "#id")
     public ResponseReservationDto cancel(Long id) {
         var entity = repositoryReservation.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Reservation was not founded"));
@@ -153,6 +160,7 @@ public class ReservationProcessor {
             isolation = Isolation.READ_COMMITTED,
             readOnly = false
     )
+    @CacheEvict(value = "reservation", key = "#id")
     public EquipmentReservation makePayment(Long id, OrderPaymentRequest request) {
         var entity = repositoryReservation.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("Reservation not found for payment"));
@@ -201,6 +209,7 @@ public class ReservationProcessor {
     @Transactional(
            readOnly = true
     )
+    @Cacheable(value = "reservation-list", key = "'all'")
     public Set<ResponseReservationDto> getOrder() {
         return repositoryReservation
                 .findAll()
@@ -214,6 +223,10 @@ public class ReservationProcessor {
             isolation = Isolation.READ_COMMITTED,
             readOnly = false
     )
+    @Caching(evict = {
+            @CacheEvict( value = "reservation-list", allEntries = true),
+            @CacheEvict( value = "reservation", allEntries = true)
+    })
     public void deleteAll() {
         repositoryReservation.deleteAll();
     }

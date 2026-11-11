@@ -6,6 +6,8 @@ import equipment_service.example.demo.dto.equipment.CreateEquipmentRequestDto;
 import equipment_service.example.demo.dto.equipment.EquipmentResponseDto;
 import equipment_service.example.demo.dto.equipment.UpdateEquipmentRequestDto;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,13 +45,20 @@ public class EquipmentProcessor {
         return mapper.toEquipmentDto(save);
     }
 
+    @CacheEvict(
+            value = "equipment",
+            key = "#id"
+    )
     public EquipmentResponseDto delete(Long id){
         var entity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Equipment wasn't found") );
         repository.delete(entity);
         return mapper.toEquipmentDto(entity);
     }
-
+    @CacheEvict(
+            value = "equipment",
+            key = "#id"
+    )
     public EquipmentResponseDto update(Long id, UpdateEquipmentRequestDto requestDto){
         var entity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Equipment wasn't found"));
@@ -57,12 +66,20 @@ public class EquipmentProcessor {
         return mapper.toEquipmentDto(entity);
     }
 
+    @Cacheable(
+            value = "equipment",
+            key = "#id"
+    )
     public EquipmentResponseDto getByid(Long id) {
         var entity =  repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Equipment wasn't found"));
         return mapper.toEquipmentDto(entity);
     }
 
+    @Cacheable(
+            value = "equipment-list",
+            key = "'all'"
+    )
     public Set<EquipmentResponseDto> getAll(){
         Set<EquipmentResponseDto> set = new HashSet<>();
         var rep = repository.findAll();
@@ -73,6 +90,10 @@ public class EquipmentProcessor {
         return set;
     }
 
+    @CacheEvict(
+            value = "equipment",
+            key = "#id"
+    )
     public void deleteAll() {
         repository.deleteAll();
     }
