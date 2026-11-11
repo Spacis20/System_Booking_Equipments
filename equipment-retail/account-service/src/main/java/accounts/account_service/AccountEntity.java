@@ -3,13 +3,15 @@ package accounts.account_service;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "acoounts")
+@Table(name = "accounts")
 @Setter
 @Getter
 @AllArgsConstructor
+@NoArgsConstructor
 public class AccountEntity {
 
     @Id
@@ -20,7 +22,7 @@ public class AccountEntity {
     @Column(name = "login", unique = true, nullable = false)
     private String login;
 
-    @Column(name = "password", nullable = false, unique = true)
+    @Column(name = "password", nullable = false)
     private String password;
 
 }

@@ -5,7 +5,6 @@ import lombok.Builder;
 @Builder
 public record AccountResponseDto(
         Long accountId,
-        String login,
-        String password
+        String login
 ) {
 }

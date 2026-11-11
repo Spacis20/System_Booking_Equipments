@@ -6,11 +6,11 @@ import org.mapstruct.*;
 @Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE,
             componentModel = MappingConstants.ComponentModel.SPRING)
 public interface AccountMapper {
-    @Mapping(target = "login", source = "AccountRequestDto.login")
-    @Mapping(target = "password", source = "AccountRequestDto.password")
+//    @Mapping(target = "login", source = "AccountRequestDto.login")
+//    @Mapping(target = "password", source = "AccountRequestDto.password")
     AccountEntity toEntity (AccountRequestDto requestDto);
 
-    @Mapping(target = "login", source = "AccountEntity.login")
-    @Mapping(target = "password", source = "AccountEntity.password")
+//    @Mapping(target = "login", source = "AccountEntity.login")
+//    @Mapping(target = "password", source = "AccountEntity.password")
     AccountResponseDto toAccountDto(AccountEntity account);
 }

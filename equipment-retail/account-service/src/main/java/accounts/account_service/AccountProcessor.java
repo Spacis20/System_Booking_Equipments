@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -43,10 +44,11 @@ public class AccountProcessor {
         return mapper.toAccountDto(account);
     }
 
-    public Set<AccountResponseDto> findAll() {
-        var list = new LinkedHashSet<>();
+    public Set<Object> findAll() {
+        var listAccounts = new HashSet<>();
         accountRepository.findAll().stream()
                 .map(mapper::toAccountDto)
-                .forEach(list::add);
+                .forEach(listAccounts::add);
+        return listAccounts;
     }
 }

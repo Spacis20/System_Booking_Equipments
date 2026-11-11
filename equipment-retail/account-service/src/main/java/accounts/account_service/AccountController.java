@@ -31,12 +31,14 @@ public class AccountController {
     public AccountResponseDto getAccount(
             @RequestParam String login
     ){
+        log.info("Get account by login: {}", login);
         var entity = accountProcessor.findByLogin(login);
         return accountMapper.toAccountDto(entity);
     }
 
     @GetMapping("/all")
-    public Set<AccountResponseDto> getAllAccounts(){
+    public Set<Object> getAllAccounts(){
+        log.info("Get All accounts:");
         return accountProcessor.findAll();
     }
 
