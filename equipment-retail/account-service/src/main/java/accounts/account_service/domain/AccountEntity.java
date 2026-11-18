@@ -1,4 +1,4 @@
-package accounts.account_service;
+package accounts.account_service.domain;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,7 +22,7 @@ public class AccountEntity {
     @Column(name = "login", unique = true, nullable = false)
     private String login;
 
-    @Column(name = "password", nullable = false)
-    private String password;
+    @Column(name = "passwordHash", nullable = false)
+    private String passwordHash;
 
 }

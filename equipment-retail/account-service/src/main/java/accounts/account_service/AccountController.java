@@ -1,6 +1,7 @@
 package accounts.account_service;
 
 
+import accounts.account_service.domain.AccountProcessor;
 import accounts.account_service.dto.AccountMapper;
 import accounts.account_service.dto.AccountRequestDto;
 import accounts.account_service.dto.AccountResponseDto;
@@ -37,9 +38,17 @@ public class AccountController {
     }
 
     @GetMapping("/all")
-    public Set<Object> getAllAccounts(){
+    public Set<AccountResponseDto> getAllAccounts(){
         log.info("Get All accounts:");
         return accountProcessor.findAll();
+    }
+
+    @DeleteMapping("/delete")
+    public void delete(
+            @RequestBody AccountRequestDto requestDto
+    ){
+        accountProcessor.delete(requestDto);
+        log.info("Account {} was deleted", requestDto.login());
     }
 
 

@@ -1,5 +1,6 @@
-package accounts.account_service;
+package accounts.account_service.db;
 
+import accounts.account_service.domain.AccountEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
