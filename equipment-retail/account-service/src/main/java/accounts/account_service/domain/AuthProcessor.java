@@ -19,14 +19,14 @@ public class AuthProcessor {
     private final JwtService jwtService;
 
     public LoginResponseDto login(LoginRequestDto login){
-        Authentication authentication =
-                authenticationManager.authenticate(
+
+        var authentication = authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
                                 login.login(),
                                 login.password()
-                        )
-                );
-        String token = jwtService.generateToken(authentication);
+                        ));
+
+        var token = jwtService.generateToken(authentication);
         return LoginResponseDto.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
