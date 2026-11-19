@@ -18,6 +18,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <build>
+        <sourceDirectory>src/src/main/java</sourceDirectory>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
